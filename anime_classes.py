@@ -3,10 +3,6 @@ from bs4 import BeautifulSoup as soup
 
 class Witanime:
 
-    def __init__(self, url, num):
-        self.url = url
-        self.num = num
-
     def get_servers_from_multi_servers(multi_servers_url):
         url = multi_servers_url.replace('embed', 'd')
         res = get(url)

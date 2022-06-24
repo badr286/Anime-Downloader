@@ -27,6 +27,9 @@ class Witanime:
 
         servers_a_tags = soup_res.find(id='episode-servers').findAll('a')
 
+        # IN CASE MULTISERVERS DOESN'T EXIST
+        servers = []
+        
         # FINDING THE MULTI SERVER
         for server in servers_a_tags:
             if 'multi server' in server.text:
@@ -34,9 +37,6 @@ class Witanime:
                 servers = Witanime.get_servers_from_multi_servers(url)
                 servers_a_tags.remove(server)
 
-        # IF MULTISERVERS DOESN'T EXIST
-        if not servers:
-            servers = []
 
         for server in servers_a_tags:
             server_name = server.text

@@ -1,6 +1,7 @@
 from requests import get, head, post, packages, session
 from bs4 import BeautifulSoup as soup
 from urllib.parse import unquote
+from m3u8 import parse as m3u8_parse
 packages.urllib3.disable_warnings()
 
 
@@ -170,7 +171,36 @@ class Bayfiles:
         file_url = res_soup.find( id='download-url' )['href']
         return Animeiat.get_file_by_url(file_url)
 
+class Dailymotion:
+        def get_file_by_id(vid_id):
+                url = f'https://www.dailymotion.com/player/metadata/video/{vid_id}'
+                data = get(url).json()
 
+                m3u8_file_url = data['qualities']['auto'][0]['url']
+                m3u8_file = get(m3u8_file_url).text
+                m3u8_parsed = m3u8_parse(m3u8_file)
+
+                mp4_url = m3u8_parsed['playlists'][0]['stream_info']['progressive_uri'] # =>    '  "url"  '
+                mp4_url = eval(mp4_url) # => "url"
+                file_size = get_size(   get(mp4_url, stream=True).headers['content-length']   )
+
+                file = {}
+                file['get_content_func'] = lambda: get(mp4_url).content
+                file['name'] = data['title']
+                file['size'] = file_size
+                file['main_url'] = url
+
+                return File(file)
+
+                
+
+        def get_id(url):
+                vid_id = url.split('?')[0].split('/')[-1]
+                return vid_id
+                
+        def get_file_by_url(url):
+                vid_id = Dailymotion.get_id(url)
+                return Dailymotion.get_file_by_id(vid_id)
 
 
 class Animeiat:

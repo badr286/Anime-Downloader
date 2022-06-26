@@ -76,7 +76,6 @@ class GoogleDrive:
 
     def get_file_by_url(url):
         vid_id = GoogleDrive.get_id(url)
-        print(vid_id)
         return GoogleDrive.get_file_by_id(vid_id)
 
 

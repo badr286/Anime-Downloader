@@ -15,39 +15,73 @@ def get_name_from_headers(header):
     return header.split(';')[1].replace('filename=', '').replace('"', '')
 
 
-class File:
-    def __init__(self, file):
-        self.name = file['name']
-        self.size = file['size']
-        self.main_url = file['main_url']
-        self.get_content_func = file['get_content_func']
-        self.info = self.info()
+class FileHelper:
+    def get_name_from_response(response):
+        content_disposition = response.headers.get("content-disposition")
+        if not content_disposition:
+            return False
 
-    def info(self):
+        if 'filename=' in content_disposition:
+            name_start = content_disposition.index('filename=') + 9 # 9 is len('filename='), because index() returns the index of the first letter
+            name_start+= 1 # to avoid the (") in the start
+            temp = content_disposition[name_start:]
+            name = temp.split('"')[0]
+
+        else:
+            name = unquote( response.url.split('/')[-1] )
+
+        return name
+
+    def size_to_mb(size_in_bytes):
+        size_in_bytes = int(size_in_bytes)
+        size_in_mb = round(size_in_bytes / 1024 / 1024, 2)
+        return f'{size_in_mb} MB'
+
+    def get_info_str(FileObj):
         info_str = ''
 
-        if '.mp4' not in self.name:
-            self.name += '.mp4'
+        if '.mp4' not in FileObj.name:
+            FileObj.name += '.mp4'
 
-        info_str += 'Name: ' + self.name
-        info_str += '\nURL: ' + self.main_url
-        info_str += '\nSize: ' + self.size
+        info_str += 'Name: ' + FileObj.name
+        info_str += '\nURL: ' + FileObj.main_url
+        info_str += '\nSize: ' + FileHelper.size_to_mb( FileObj.size )
 
         return info_str
 
+
+
+
+
+class File:
+    def __init__(self, response):
+        self.response = response
+        self.name = FileHelper.get_name_from_response(response)
+        self.size = int(response.headers['content-length'])
+        self.main_url = response.url
+        self.info = FileHelper.get_info_str(self)
+
+
     def download_and_save(self):
-        content = self.get_content_func()
-        open(self.name, 'wb').write(content)
+        file = open(self.name, 'ab')
+        downloaded = 0
+        
+        for chunk in self.response.iter_content(1024*1024*10):
+            file.write(chunk)
+            downloaded += len(chunk)
+            perc = ( downloaded / self.size ) * 100
+            perc = round(perc, 2)
+            print(f'{perc}%')
+            
+        file.close()
 
 
 # ------------------------------------------------------
 
-
 class GoogleDrive:
     def get_id(url):
-        url = url.replace('https://drive.google.com/file/d/', '')
-        url = url.replace('/view', '')
-        vid_id = url.replace('/preview', '')
+        url = url.split('id=')[1]
+        vid_id = url.split('&')[0]
         return vid_id
 
     def ok(vid_id):
@@ -58,38 +92,20 @@ class GoogleDrive:
         else:
             return False
 
-
     def get_file_by_id(vid_id):
         url = f'https://drive.google.com/uc?export=download&id={vid_id}&confirm=AYE'
         res = post(url, stream=True)
 
-        file = {
-
-            'get_content_func': lambda: post(url).content,
-            'size': get_size(res.headers['content-length']),
-            'name': get_name_from_headers(res.headers['content-disposition']),
-            'main_url': url
-
-        }
-
-        return File(file)
+        return File(res)
 
     def get_file_by_url(url):
         vid_id = GoogleDrive.get_id(url)
         return GoogleDrive.get_file_by_id(vid_id)
 
-
 class Mp4upload:
 
     def get_id(url):
-        url = url.replace('https://', '')
-        url = url.replace('www.', '')
-        url = url.replace('mp4upload.com/', '')
-        url = url.replace('embed-', '')
-        url = url.replace('.html', '')
-
-        vid_id = url
-
+        vid_id = url.split('/')[-1]
         return vid_id
 
     def ok(vid_id):
@@ -100,9 +116,6 @@ class Mp4upload:
             return False
         else:
             return True
-
-    def get_name_from_url(url):
-        return url.split('/')[-1].replace('%20', ' ')
 
     def get_file_by_id(vid_id):
         url = f'https://www.mp4upload.com/{vid_id}'
@@ -118,49 +131,33 @@ class Mp4upload:
             'method_premium': ''
         }
 
-        res = post(url, data=data, headers=headers, stream=True,
-                   allow_redirects=False, verify=False)
-        src = res.headers['location']
-        src_headers = head(src, headers=headers, verify=False).headers
+        res = post(url, data=data, headers=headers, stream=True, verify=False)
 
-        file['get_content_func'] = lambda: get(
-            src, headers=headers, verify=False).content
-        file['name'] = Mp4upload.get_name_from_url(src)
-        file['size'] = get_size(src_headers['content-length'])
-        file['main_url'] = url
-
-        return File(file)
+        return File(res)
 
     def get_file_by_url(url):
-        vid_id = Mp4upload.get_id(url)
+        vid_id = Mp4upload.get_id_from_url(url)
         return Mp4upload.get_file_by_id(vid_id)
-    
 
 class Userscloud:
+
+    def get_id_from_url(url):
+        return url.split('/')[-1]
+
     def get_file_by_url(url):
-        vid_id = url.split('/')[-1]
-        
+
         data = {
-	'op': 'download2',
-	'id': vid_id,
+            'op': 'download2',
+            'id': Userscloud.get_id_from_url( url )
         }
 
         res = post(url, data=data, stream=True)
 
-        file = {}
-        file['get_content_func'] = lambda: post(url, data=data)
-        file['name'] = unquote(res.url).split('/')[-1]
-        file['size'] = get_size(res.headers['content-length'])
-        file['main_url'] = url
-
-        return File(file)
-
-
+        return File(res)
 
 class Tusfiles:
     def get_file_by_url(url):
         return Userscloud.get_file_by_url(url)
-
 
 class Bayfiles:
     def get_file_by_url(url):
@@ -168,94 +165,32 @@ class Bayfiles:
         res_soup = soup(res.text, 'html.parser')
 
         file_url = res_soup.find( id='download-url' )['href']
-        return Animeiat.get_file_by_url(file_url)
+        res = get(file_url, stream=True)
 
-class Dailymotion:
-        def get_file_by_id(vid_id):
-                url = f'https://www.dailymotion.com/player/metadata/video/{vid_id}'
-                data = get(url).json()
+        return File(res)
 
-                m3u8_file_url = data['qualities']['auto'][0]['url']
-                m3u8_file = get(m3u8_file_url).text
-                m3u8_parsed = m3u8_parse(m3u8_file)
+class Workupload:
+    def get_id_from_url(url):
+        return url.split('/')[-1]
 
-                mp4_url = m3u8_parsed['playlists'][0]['stream_info']['progressive_uri'] # =>    '  "url"  '
-                mp4_url = eval(mp4_url) # => "url"
-                file_size = get_size(   get(mp4_url, stream=True).headers['content-length']   )
-
-                file = {}
-                file['get_content_func'] = lambda: get(mp4_url).content
-                file['name'] = data['title']
-                file['size'] = file_size
-                file['main_url'] = url
-
-                return File(file)
-
-                
-
-        def get_id(url):
-                vid_id = url.split('?')[0].split('/')[-1]
-                return vid_id
-                
-        def get_file_by_url(url):
-                vid_id = Dailymotion.get_id(url)
-                return Dailymotion.get_file_by_id(vid_id)
-
-
-class Animeiat:
     def get_file_by_url(url):
-        file = {}
-        res = head(url)
+        i = session()
+        i.get(url)
 
-        file['get_content_func'] = lambda: get(url).content
-        file['size'] = get_size(res.headers['content-length'])
-        file['name'] = unquote(url.split('/')[-1])
-        file['main_url'] = url
+        vid_id = Workupload.get_id_from_url(url)
+        api_url = f'https://workupload.com/api/file/getDownloadServer/{vid_id}'
+        file_url = i.get(api_url).json()['data']['url']
 
-        return File(file)
+        res = i.get(file_url, stream=True)
 
+        return File(res)
 
-class Skyanime_player:
-    def get_file_by_url(url, file_name):
-        vid_id = url.split('?id=')[-1]
-
-
-        # Get ApiKey
-        res = get(url).text.split('"')
-
-        for i in range(len(res)):
-            if 'apikey' in res[i]:
-                apikey = res[i+1]
-
-                break
-
-        # Get File Url
-        url = "https://www.googleapis.com/drive/v3/files/"+vid_id+"?alt=media&key="+apikey
-
-        # Prepare File
-        # return Animeiat.get_file_by_url(url) works ig
-        file = {}
-        res = head(url)
-
-        file['get_content_func'] = lambda: get(url).content
-        file['size'] = get_size(res.headers['content-length'])
-        file['name'] = file_name
-        file['main_url'] = url
-
-        return File(file)
-
-    
-
-
-
-class Egybest:
+class Mediafire:
     def get_file_by_url(url):
-        res = head(url)
-        file = {}
+        res = get(url)
+        res_soup = soup(res.text, 'html.parser')
 
-        file['get_content_func'] = lambda: get(url).content
-        file['name'] = get_name_from_headers(res.headers['content-disposition'])
-        file['size'] = get_size(res.headers['content-length'])
-        file['main_url'] = url
+        file_url = res_soup.find(id = 'downloadButton')['href']
+        res = get(file_url, stream=True)
 
-        return File(file)
+        return File(res)

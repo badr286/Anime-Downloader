@@ -45,7 +45,7 @@ class Witanime:
         return servers
     
 
-    def get_ep_sources_by_ep_url(ep_url):
+    def get_ep_sources_by_ep_url_NOTUSED(ep_url):#From Video Player
         res = get(ep_url)
         soup_res = soup(res.text, 'html.parser')
 
@@ -74,6 +74,33 @@ class Witanime:
             servers.append({'name': server_name, 'url': server_url})
 
         return servers
+
+
+    def get_ep_sources_by_ep_url(ep_url):#From Downloading Servers
+        res = get(ep_url)
+        soup_res = soup(res.text, 'html.parser')
+        
+        episode_download_container = soup_res.find('div', {'class':'episode-download-container'})
+        quality_lists = episode_download_container.findAll('ul', {'class':'quality-list'})
+
+        servers = []
+        for group in quality_lists:
+            LIs = group.findAll('li')
+            quality_name = LIs[0].text
+            group_servers = LIs[1:]
+            for server in group_servers:
+                server_name = server.text + ' - ' + quality_name
+                server_url = server.find('a')['href']
+                if 'multi server' in server.text:
+                    url = server_url
+                    multiservers = Witanime.get_servers_from_multi_servers(url)
+                    merge_lists(multiservers, servers)
+                    continue
+
+                servers.append( {'name':server_name, 'url':server_url} )
+
+        return servers
+            
 
     def get_eps_by_anime_url(anime_url):
         res = get(anime_url).text

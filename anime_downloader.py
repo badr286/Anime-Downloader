@@ -23,7 +23,7 @@ class Episode:
 	def display_all_servers_with_indexes(self):
 		for i in range( len(self.servers) ):
 			server = self.servers[i]
-			print( f'{i}. {server["name"]}' )
+			print( f'{i}. {server["name"]}\n        URL: {server["url"]}' )
 
 
 
@@ -75,6 +75,9 @@ print('\n\nDownloading Wanted Servers', end='\n\n')
 
 for url in download_list:
         file = get_file(url)
+        if not file:
+        	print("ERROR IN DOWNLOADING "+url)
+        	continue
 
         print('Downloading..')
         print(file.info)

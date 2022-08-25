@@ -136,7 +136,7 @@ class Mp4upload:
         return File(res)
 
     def get_file_by_url(url):
-        vid_id = Mp4upload.get_id_from_url(url)
+        vid_id = Mp4upload.get_id(url)
         return Mp4upload.get_file_by_id(vid_id)
 
 class Userscloud:

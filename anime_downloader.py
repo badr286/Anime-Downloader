@@ -1,8 +1,9 @@
-from anime_classes import Witanime
+from anime_classes import Witanime, Gateanime
 from downloader import get_file
 
 classes_and_identifiers = {
-	'witanime': Witanime
+	'witanime': Witanime,
+	'gateanime': Gateanime
 }
 
 identifiers = list( classes_and_identifiers.keys() )

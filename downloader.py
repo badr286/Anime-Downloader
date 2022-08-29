@@ -18,6 +18,9 @@ def get_file(url):
         if identifier in url:
             the_class = classes_and_identifiers[identifier]
             return the_class.get_file_by_url(url)
+        if 'gateanime' in url:
+            return get_file(  get(url, headers={}).url  ) # Get The Actual URL and Run It Through get_file Again
+        
     return False
     
         

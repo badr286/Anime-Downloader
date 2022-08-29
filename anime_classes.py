@@ -117,3 +117,59 @@ class Witanime:
             episodes.append({'num': num, 'url': url})
 
         return episodes
+    
+   
+
+class Gateanime:
+
+    def get_ep_sources_by_ep_url(ep_url):
+        res = get(ep_url)
+        res_soup = soup(res.text, 'html.parser')
+
+        servers_tr_tags = res_soup.find('tbody').findAll('tr')
+
+        servers = []
+        for server_tr_tag in servers_tr_tags:
+            server_span_tags = server_tr_tag.findAll('span')
+
+            server_name = server_span_tags[1].text
+            quality = server_span_tags[3].text
+            server_url = server_tr_tag.find('a')['href']
+
+            servers.append( {'name':server_name + ' - ' + quality, 'url': server_url } )
+
+        return servers
+
+            
+            
+        
+
+    def get_eps_by_anime_url(anime_url):
+        
+        parts = anime_url.split(' ')
+        
+        if parts == 2:
+            anime_url, season_number = anime_url.split(' ')
+        else:
+            anime_url, season_number = parts[0], '1' # Default Season Value Is 1
+            
+            
+        
+        res = get(anime_url)
+        res_soup = soup(res.text, 'html.parser')
+
+        seasons = res_soup.findAll('div', {'class':'AABox'})
+        wanted_season = seasons[ int(season_number) - 1 ]
+
+        eps_tr_tags = wanted_season.findAll('tr')
+
+        episodes = []
+        for tr_tag in eps_tr_tags:
+            ep_td_tags = tr_tag.findAll('td')
+
+            num = ep_td_tags[0].text
+            url = tr_tag.find('a')['href']
+            
+            episodes.append({'num': num, 'url':url})
+
+        return episodes

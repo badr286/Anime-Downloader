@@ -1,4 +1,4 @@
-from downloading_classes import GoogleDrive, Mp4upload, Userscloud, Tusfiles, Bayfiles, Workupload, Mediafire
+from downloading_classes import GoogleDrive, Mp4upload, Userscloud, Tusfiles, Bayfiles, Workupload, Mediafire, Streamsb
 
 classes_and_identifiers = {
     'drive': GoogleDrive,
@@ -7,8 +7,9 @@ classes_and_identifiers = {
     'tusfiles': Tusfiles,
     'bayfiles': Bayfiles,
     'workupload': Workupload,
-    'mediafire': Mediafire
-    
+    'mediafire': Mediafire,
+    'sbfull': Streamsb,
+    'sbthe': Streamsb
 }
 
 identifiers = list( classes_and_identifiers.keys() )

@@ -75,8 +75,74 @@ class File:
             
         file.close()
 
+class M3u8_file:
+    def __init__(self, name, indexM3u8, main_url):
+        self.name = name
+        self.indexM3u8 = indexM3u8
+        self.parts = M3u8_file.get_parts(indexM3u8)
 
+        self.info = 'Name: ' + name
+        self.info+= '\nURL: ' + main_url
+        self.info+= '\nIndexUrl: ' + indexM3u8
+
+    def get_parts(indexM3u8):
+        res = get(indexM3u8, headers={}).text
+        indexM3u8_dict = m3u8_parse(res)
+
+        parts = [seg['uri'] for seg in indexM3u8_dict['segments']]
+        return parts
+        
+
+    def download_and_save(self):
+        file = open(self.name, 'ab')
+        downloadedParts = 0
+        totalParts = len(self.parts)
+
+        for part in self.parts:
+            part_content = get(part).content
+            file.write(part_content)
+
+            downloadedParts += 1
+            perc = ( downloadedParts / totalParts ) * 100
+            perc = round(perc, 2)
+            print(f'{perc}%')
+
+        file.close()
+        
 # ------------------------------------------------------
+
+def stringToHex(string):
+    return string.encode('utf-8').hex()
+
+class Streamsb:
+    def get_file_by_url(url):
+        vid_id = url.split('/')[-1].replace('.html', '')
+
+        data = f"AAA||{vid_id}||streamsb"
+        hexData = stringToHex(data)
+        
+        url = 'https://sbthe.com/sources48/' + hexData
+        headers = {'watchsb': 'sbstream'}
+        
+        res = get(url, headers=headers).json()
+        
+        m3u8_file_url = res['stream_data']['file']
+        m3u8_file = get(m3u8_file_url).text
+        m3u8_file_dict = m3u8_parse(m3u8_file)
+
+        best_quality_index = m3u8_file_dict['playlists'][-1]['uri']
+
+
+        m3u8_file_name = res['stream_data']['title']
+        if not m3u8_file_name.endswith('.mp4'):
+            m3u8_file_name+= '.mp4'
+    
+
+        
+        
+        return M3u8_file(m3u8_file_name, best_quality_index, url)
+
+
 
 class GoogleDrive:
     def get_id(url):

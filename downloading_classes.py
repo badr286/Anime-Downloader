@@ -142,8 +142,7 @@ class Streamsb:
         
         return M3u8_file(m3u8_file_name, best_quality_index, url)
 
-
-
+    
 class GoogleDrive:
     def get_id(url):
         url = url.split('id=')[1]
@@ -158,16 +157,34 @@ class GoogleDrive:
         else:
             return False
 
+    # old downloading function, doesn't work anymore, ig
+    '''
     def get_file_by_id(vid_id):
         url = f'https://drive.google.com/uc?export=download&id={vid_id}&confirm=AYE'
         res = post(url, stream=True)
 
         return File(res)
+    '''
+    
+    def get_file_by_id(vid_id):
+        url = f'https://drive.google.com/uc?id={vid_id}&export=download'
+        res = get(url, stream=True)
+	
+        if res.headers.get('content-disposition'):# file doesn't need confirmation
+                return File(res)
+
+        res_soup = soup(res.text, 'html.parser')
+        downloadAnyWay_url = res_soup.find(id='downloadForm')['action']
+
+        res = post(downloadAnyWay_url, stream=True)
+        return File(res)
+    
 
     def get_file_by_url(url):
         vid_id = GoogleDrive.get_id(url)
         return GoogleDrive.get_file_by_id(vid_id)
 
+    
 class Mp4upload:
 
     def get_id(url):

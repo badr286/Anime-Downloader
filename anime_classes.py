@@ -7,6 +7,26 @@ def merge_lists(From,To):
         To.append(i)
     return True
 
+AVAILABLE_SERVERS = [
+    'drive',
+    'mp4upload',
+    'userscloud',
+    'tusfiles',
+    'bayfiles',
+    'workupload',
+    'mediafire',
+    'sbfull',
+    'sbthe'
+]
+def getAvailableServers(servers: list):
+    availabeServers = []
+    for server in servers:
+        for keyword in AVAILABLE_SERVERS:
+            if keyword in server['url']:
+                availabeServers.append(server)
+
+    return availabeServers
+
 
 class Witanime:
 

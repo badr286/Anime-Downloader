@@ -111,15 +111,14 @@ class Witanime:
             for server in group_servers:
                 server_name = server.text + ' - ' + quality_name
                 server_url = server.find('a')['href']
-                if 'multi server' in server.text:
-                    url = server_url
-                    multiservers = Witanime.get_servers_from_multi_servers(url)
+                if 'soraplay.xyz' in server_url:
+                    multiservers = Witanime.get_servers_from_multi_servers(server_url)
                     merge_lists(multiservers, servers)
                     continue
 
                 servers.append( {'name':server_name, 'url':server_url} )
 
-        return servers
+        return getAvailableServers(servers)
             
 
     def get_eps_by_anime_url(anime_url):

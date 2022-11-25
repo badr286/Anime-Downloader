@@ -174,7 +174,7 @@ class GoogleDrive:
                 return File(res)
 
         res_soup = soup(res.text, 'html.parser')
-        downloadAnyWay_url = res_soup.find(id='downloadForm')['action']
+        downloadAnyWay_url = res_soup.find(id='download-form')['action']
 
         res = post(downloadAnyWay_url, stream=True)
         return File(res)
